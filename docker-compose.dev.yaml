@@ -1,0 +1,50 @@
+version: '3'
+services:
+  ms-promotional-banner:
+    container_name: ms-promotional-banner
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ms-promotional-banner?allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: ms-promotional-banner
+      SPRING_DATASOURCE_PASSWORD: password
+      KONG_BASE_URI: http://kong:8001
+    ports:
+      - '8084:8080'
+    networks:
+      - api-gateway_microservices
+      - mysql_microservices
+
+  mysql:
+    image: 'mysql/mysql-server:8.0'
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: 'root'
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: 'ms-promotional-banner'
+      MYSQL_USER: 'ms-promotional-banner'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    networks:
+      - mysql_microservices
+    volumes:
+      - 'mysql:/var/lib/mysql'
+      - './docker/database/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-p password" ]
+      retries: 3
+      timeout: 5s
+
+networks:
+  api-gateway_microservices:
+    driver: bridge
+    external: true
+  mysql_microservices:
+    driver: bridge
+    external: true
+
+volumes:
+  mysql:
+    driver: local
